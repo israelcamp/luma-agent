@@ -47,7 +47,6 @@ def check_auth(state: State) -> State:
     state["stop"] = True
     return state
 
-
 graph_builder = StateGraph(State)
 
 graph_builder.add_node("check_auth", check_auth)
