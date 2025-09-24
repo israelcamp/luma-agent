@@ -1,4 +1,8 @@
+import json
 from textwrap import dedent
+
+from ollama import chat
+
 
 class AuthLLM:
 
@@ -18,13 +22,34 @@ class AuthLLM:
         """).strip()
 
     @staticmethod
-    def run(
-        name: str | None = None,
-        phone: str | None = None,
-        date_of_birth: str | None = None
-    ) -> dict:
-        return {
-            "name": "Israel Campiotti",
-            "phone": "+55 19 91234-5678",
-            "date_of_birth": "1792-11-28"
+    def chat(input: str) -> dict:
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "phone": {"type": "string"},
+                "date_of_birth": {"type": "string"},
+            }
         }
+        response = chat(
+            model="llama3.2:3b-instruct-q5_K_M",
+            format=schema,
+            options={"temperature": 0},
+            messages = [
+                {"role": "system", "content": AuthLLM.prompt()},
+                {"role": "user", "content": input}
+            ]
+        )
+        return response
+
+    @staticmethod
+    def run(
+        input: str
+    ) -> dict:
+        response = AuthLLM.chat(input)
+        infos = json.loads(response.message.content)
+        keep_infos = {}
+        for key, value in infos.items():
+            if not value.lower() in ("none", "null") and len(value) > 0:
+                keep_infos[key] = value
+        return keep_infos

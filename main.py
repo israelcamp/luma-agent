@@ -2,7 +2,7 @@ from graph import graph
 
 def main():
     response = graph.invoke({
-        "input": "Oi"
+        "input": "Hello"
     })
     print(response)
 

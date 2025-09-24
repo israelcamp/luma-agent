@@ -22,10 +22,9 @@ def check_auth(state: State) -> State:
         return state
 
     infos = AuthLLM.run(
-        name=state.get("name", None),
-        phone=state.get("phone", None),
-        date_of_birth=state.get("date_of_birth", None)
+        input=state["input"]
     )
+    print(infos)
     for key, value in infos.items():
         if value is not None:
             state[key] = value
