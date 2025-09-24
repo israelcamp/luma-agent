@@ -24,10 +24,7 @@ def check_auth(state: State) -> State:
     infos = AuthLLM.run(
         input=state["input"]
     )
-    print(infos)
-    for key, value in infos.items():
-        if value is not None:
-            state[key] = value
+    state.update(infos)
 
     if all(state.get(key, None) is not None for key in (
         "name", "phone", "date_of_birth"
@@ -49,6 +46,7 @@ def check_auth(state: State) -> State:
     state["answer"] = msg
     state["stop"] = True
     return state
+
 
 graph_builder = StateGraph(State)
 

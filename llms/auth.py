@@ -1,8 +1,14 @@
 import json
 from textwrap import dedent
 
-from ollama import chat
+from pydantic import BaseModel
+from langchain_ollama import ChatOllama
 
+
+class AuthInfo(BaseModel):
+    name: str | None
+    phone: str | None
+    date_of_birth: str | None
 
 class AuthLLM:
 
@@ -23,23 +29,16 @@ class AuthLLM:
 
     @staticmethod
     def chat(input: str) -> dict:
-        schema = {
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "phone": {"type": "string"},
-                "date_of_birth": {"type": "string"},
-            }
-        }
-        response = chat(
+        llm = ChatOllama(
             model="llama3.2:3b-instruct-q5_K_M",
-            format=schema,
-            options={"temperature": 0},
-            messages = [
-                {"role": "system", "content": AuthLLM.prompt()},
-                {"role": "user", "content": input}
-            ]
+            temperature=0
         )
+        llm = llm.with_structured_output(AuthInfo)
+        
+        response = llm.invoke([
+            ("system", AuthLLM.prompt()),
+            ("human", input)
+        ])
         return response
 
     @staticmethod
@@ -47,7 +46,7 @@ class AuthLLM:
         input: str
     ) -> dict:
         response = AuthLLM.chat(input)
-        infos = json.loads(response.message.content)
+        infos = response.dict()
         keep_infos = {}
         for key, value in infos.items():
             if not value.lower() in ("none", "null") and len(value) > 0:
