@@ -1,11 +1,10 @@
-from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
 import srsly
+from pydantic import BaseModel
 
-
-class Appointments:
+class Appointments(BaseModel):
     id: int
     place: str
     doctor: str
@@ -22,8 +21,8 @@ def init_db() -> list[Appointments]:
     appointments = []
     for i, apt in enumerate(data):
         dt = datetime.fromisoformat(apt["date_time"])
-        day = dt.date()
-        time = dt.time()
+        day = dt.date().strftime("%Y-%m-%d")
+        time = dt.time().strftime("%I:%M %p")
         appointments.append(Appointments(
             id=i,
             place=apt["place"],
@@ -37,3 +36,4 @@ def init_db() -> list[Appointments]:
         ))
     return appointments
 
+db = init_db()

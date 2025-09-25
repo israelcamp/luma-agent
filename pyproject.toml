@@ -12,3 +12,10 @@ dependencies = [
     "ollama>=0.5.4",
     "srsly>=2.5.1",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "isort>=6.0.1",
+    "ruff>=0.13.2",
+]

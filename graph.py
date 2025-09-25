@@ -1,11 +1,13 @@
+import json
 from typing import Annotated
 
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-
 from llms.auth import AuthLLM
+from llms.react import ReactAgent
+
 
 class State(TypedDict):
     authenticated: bool
@@ -47,12 +49,30 @@ def check_auth(state: State) -> State:
     state["stop"] = True
     return state
 
+def react_node(state: State) -> State:
+    response = ReactAgent.run(state["input"])
+    try:
+        response = json.loads(response)
+    except:
+        pass
+    state["answer"] = response
+    return state
+
 graph_builder = StateGraph(State)
 
 graph_builder.add_node("check_auth", check_auth)
+graph_builder.add_node("react", react_node)
 
 graph_builder.add_edge(START, "check_auth")
-graph_builder.add_edge("check_auth", END)
+graph_builder.add_conditional_edges(
+    "check_auth",
+    path=lambda state: state.get("stop", False),
+    path_map={
+        False: "react",
+        True: END
+    }
+)
+graph_builder.add_edge("react", END)
 
 graph = graph_builder.compile()
 

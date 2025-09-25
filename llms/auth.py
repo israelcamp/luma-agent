@@ -49,6 +49,6 @@ class AuthLLM:
         infos = response.dict()
         keep_infos = {}
         for key, value in infos.items():
-            if not value.lower() in ("none", "null") and len(value) > 0:
+            if value is not None and not value.lower() in ("none", "null") and len(value) > 0:
                 keep_infos[key] = value
         return keep_infos
