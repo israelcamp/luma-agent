@@ -20,6 +20,9 @@ def main():
         answer = response.pop("answer")
         print(response)
         print("== ANSWER == ", "\n", answer)
+        import pdb
+
+        pdb.set_trace()
 
         state.update(response)
         state.update({"stop": False, "input": None})
