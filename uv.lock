@@ -478,6 +478,7 @@ dependencies = [
 dev = [
     { name = "black" },
     { name = "isort" },
+    { name = "rich" },
     { name = "ruff" },
 ]
 
@@ -495,6 +496,7 @@ requires-dist = [
 dev = [
     { name = "black", specifier = ">=25.9.0" },
     { name = "isort", specifier = ">=6.0.1" },
+    { name = "rich", specifier = ">=14.1.0" },
     { name = "ruff", specifier = ">=0.13.2" },
 ]
 

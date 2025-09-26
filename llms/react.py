@@ -9,8 +9,31 @@ from react.react_agent import create_react_agent
 
 @tool
 def list_appointments() -> list[dict]:
-    """Lists all appointments that are not canceled"""
-    return [v.dict() for v in db]
+    """
+    Lists all appointments that are not canceled
+    This tool should be used whenever the user asks:
+    To see his appoints, check futures appointments, wants to know unconfirmed appoints and so on.
+    Examples:
+    What are my appointments for the next week?
+    Do I have an appointment with cardiologist?
+    """
+    texts = []
+    for apt in db:
+        text = dedent(
+            f"""
+        Appointment ID: {apt.id}
+        Name of the clinic: {apt.place}
+        Doctor name: {apt.doctor}
+        Speciality: {apt.speciality}
+        Address: {apt.address}
+        Schedule for: {apt.date} at {apt.time}
+        Is confirmed? {apt.confirmed}
+        """
+        ).strip()
+        texts.append(text)
+    return "\n\n".join(
+        ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
+    )
 
 
 @tool
@@ -30,10 +53,12 @@ class ReactAgent:
         return dedent(
             """
         The user will send you a message, you should check if you have any tool available that can help you answer the message correctly.
-        
+
         In the case that the user gives you a message containing only their personal information, you should call the appropriate tool "greeting".
         IMPORTANT: The message from this tool should be returned to the user.
-        
+
+        When listing the appoints to the user, DO NOT show the ID. Display the appointments in a friendly manner.
+
         """
         )
 
