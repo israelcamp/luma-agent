@@ -4,76 +4,27 @@ from rich import print
 from langchain.tools import tool
 from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage
+from langgraph.prebuilt import create_react_agent
 
 from db.db import Appointments
-from llms.listllm import ListLLM
-from react.react_agent import create_react_agent
 from settings import settings
-
 
 
 class ReactAgent:
 
-    def __init__(self, ids: list | None):
-        self.ids = ids
-        if self.ids is None:
-            self.ids = []
-
-    def create_list_appointments_tool(self, input: str, history: list[BaseMessage], appointments: list[Appointments]):
-        @tool
-        def list_appointments(query: str) -> list[dict]:
-            """
-            Lists all appointments that are not canceled
-            This tool should be used whenever the user asks:
-            To see his appoints, check futures appointments, wants to know unconfirmed appoints and so on.
-
-            Examples:
-            What are my appointments for the next week?
-            Do I have an appointment with cardiologist?
-            """
-            ids = ListLLM.run(query, appointments)
-            self.ids = ids
-            texts = []
-
-            for apt in appointments:
-                if apt.id not in ids:
-                    continue
-
-                text = dedent(
-                    f"""
-                Doctor name: {apt.doctor}
-                Speciality: {apt.speciality}
-                Schedule for: {apt.date} at {apt.time}
-                Is confirmed? {apt.confirmed}
-                Is canceled? {apt.canceled}
-                """
-                ).strip()
-                texts.append(text)
-
-            self.appointments_texts = texts
-            return "\n\n".join(
-                ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
-            )
-
-        return list_appointments
-
     def create_confirm_tool(self, appointments: list[Appointments]):
         @tool
-        def confirm_appointment() -> str:
+        def confirm_appointment(appointment_ids: list[int]) -> str:
             """
-            This tool should be used to confirm appointments
-            The appointments first need to be listed than confirmed
+            This tool should be used to confirm appointments using their appointment_id
             """
             confirmed = []
             for apt in appointments:
-                if apt.id in self.ids:
+                if apt.id in appointment_ids:
                     apt.confirmed = True
                     text = dedent(
                         f"""
-                    Appointment Confirmed:
-                    - Doctor name: {apt.doctor}
-                    - Speciality: {apt.speciality}
-                    - Schedule for: {apt.date} at {apt.time}
+                    Appointment with appointment_id {apt.id} confirmed!
                     """
                     ).strip()
                     confirmed.append(text)
@@ -81,28 +32,23 @@ class ReactAgent:
                 msg = "\n\n".join(confirmed)
             else:
                 msg = f"No appointments were found"
-            self.ids = []
             return msg
         return confirm_appointment
 
     def create_cancel_tool(self, appointments: list[Appointments]):
         @tool
-        def cancel_appointment() -> str:
+        def cancel_appointment(appointment_ids: list[int]) -> str:
             """
-            This tool should be used to cancel appointments
-            The appointments first need to be listed than canceled
+            This tool should be used to cancel appointments using their appointment_id
             """
             canceled = []
             for apt in appointments:
-                if apt.id in self.ids:
+                if apt.id in appointment_ids:
                     apt.confirmed = False
                     apt.canceled = True
                     text = dedent(
                         f"""
-                    Appointment Canceled:
-                    - Doctor name: {apt.doctor}
-                    - Speciality: {apt.speciality}
-                    - Schedule for: {apt.date} at {apt.time}
+                    Appointment with appointment_id {apt.id} canceled.
                     """
                     ).strip()
  
@@ -111,50 +57,53 @@ class ReactAgent:
                 msg = "\n\n".join(canceled)
             else:
                 msg = f"No appointments with ids {cids} were found"
-            self.ids = []
             return msg
         return cancel_appointment
 
     @staticmethod
-    @tool
-    def greeting() -> str:
-        """This tool should be used when the user sends a message containing only their personal information, like Name, Phone and Date of Birth"""
-        return dedent(
+    def prompt(appointments: list[Appointments]) -> str:
+        texts = []
+        for apt in appointments:
+            text = dedent(
+                f"""
+            appointment_id: {apt.id}
+            - Doctor name: {apt.doctor}
+            - Speciality: {apt.speciality}
+            - Schedule for: {apt.date} at {apt.time}
+            - Is confirmed? {apt.confirmed}
+            - Is canceled? {apt.canceled}
             """
-        Hello! Tell me if you want to list, cancel or confirm your appointments.
-        """
-        ).strip()
+            ).strip()
+            texts.append(text)
 
+        appointments = "\n\n".join(
+                ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
+            )
 
-    @staticmethod
-    def prompt() -> str:
         return dedent(
-            """
+            f"""
         The user will send you a message, you should check if you have any tool available that can help you answer the message correctly.
 
-        In the case that the user gives you a message containing only their personal information, you should call the appropriate tool "greeting".
-        IMPORTANT: The message from this tool should be returned to the user.
+        {appointments}
 
-        When listing the appointments to the user, DO NOT show the ID.
+        When the user wants to confirm or cancel an appointment you should call "confirm_appointment" or "cancel_appointment" with the correct appointment_ids.
 
-        After calling and/or using the tools "confirm_appointment" and "cancel_appointment" you should inform the results.
+        After calling and/or using the tools "confirm_appointment", "cancel_appointment" you should inform the result.
         """
         )
 
     def run(self, input: str, history: list[BaseMessage], appointments: list[Appointments]) -> str:
         llm = ChatOllama(model=settings.model, temperature=0)
         tools = [
-           self.greeting,
-           self.create_list_appointments_tool(input, history, appointments),
            self.create_cancel_tool(appointments),
            self.create_confirm_tool(appointments),
         ]
 
         agent = create_react_agent(
-            llm, tools=tools, prompt=ReactAgent.prompt(), stop_tools=["greeting"]
+            llm, tools=tools, prompt=ReactAgent.prompt(appointments)
         )
 
         response = agent.invoke({"messages": history + [("user", input)]})
         print(response)
         answer = response["messages"][-1].content
-        return answer, self.ids
+        return answer

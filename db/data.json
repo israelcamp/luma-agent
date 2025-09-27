@@ -19,19 +19,5 @@
     "speciality": "Dermatology",
     "date_time": "2025-10-09T11:15:00",
     "address": "5841 S Maryland Ave, Chicago, IL 60637"
-  },
-  {
-    "place": "Lurie Children’s Hospital of Chicago",
-    "doctor": "Dr. Michael Thompson",
-    "speciality": "Pediatrics",
-    "date_time": "2025-10-11T10:45:00",
-    "address": "225 E Chicago Ave, Chicago, IL 60611"
-  },
-  {
-    "place": "Advocate Illinois Masonic Medical Center",
-    "doctor": "Dr. Aisha Patel",
-    "speciality": "Internal Medicine",
-    "date_time": "2025-10-13T16:30:00",
-    "address": "836 W Wellington Ave, Chicago, IL 60657"
   }
 ]

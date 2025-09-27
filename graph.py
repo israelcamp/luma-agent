@@ -38,17 +38,18 @@ def check_auth(state: State) -> State:
     )):
         state["authenticated"] = True
         state["answer"] = "You are authenticated"
+        state["stop"] = True
         return state
 
     msg = "To continue I need some information:\n"
     if state.get("name", None) is None:
-        msg = msg + "Name\n"
+        msg = msg + "- Name\n"
 
     if state.get("phone", None) is None:
-        msg = msg + "Phone\n"
+        msg = msg + "- Phone\n"
 
     if state.get("date_of_birth", None) is None:
-        msg = msg + "Date of Birth"
+        msg = msg + "- Date of Birth"
 
     state["answer"] = msg
     state["stop"] = True
@@ -60,14 +61,12 @@ def react_node(state: State) -> State:
     if len(history) > settings.max_history:
         history = history[-settings.max_history:]
 
-    ids = state.get("current_ids", None)
-    response, ids = ReactAgent(ids=ids).run(state["input"], history, state["appointments"])
+    response = ReactAgent().run(state["input"], history, state["appointments"])
     try:
         response = json.loads(response)
     except:
         pass
     state["answer"] = response
-    state["current_ids"] = ids
     return state
 
 def add_messages_node(state: State) -> State:

@@ -11,6 +11,7 @@ dependencies = [
     "langgraph>=0.6.7",
     "ollama>=0.5.4",
     "srsly>=2.5.1",
+    "streamlit>=1.50.0",
 ]
 
 [dependency-groups]

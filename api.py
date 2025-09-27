@@ -15,7 +15,7 @@ FAKE_REDIS = {}
 
 app = FastAPI()
 
-@app.get("/")
+@app.post("/")
 def chat(message: Message):
     session_id = message.session_id
     if session_id is None or session_id not in FAKE_REDIS:
@@ -25,6 +25,8 @@ def chat(message: Message):
             "state": State(authenticated=False),
             "appointments": appointments
         }
+    # NOTE: For real project the appointments would be stored in database with proper CRUD.
+    # NOTE: The state could still be saved in Redis for fast retrieval.
 
     session_data = FAKE_REDIS[session_id]
     state = session_data["state"]
