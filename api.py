@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 import uuid
 
 from fastapi import FastAPI
@@ -9,7 +9,7 @@ from graph import State, graph
 
 class Message(BaseModel):
     input: str
-    session_id: str | None
+    session_id: Optional[str]
 
 FAKE_REDIS = {}
 
@@ -19,23 +19,30 @@ app = FastAPI()
 def chat(message: Message):
     session_id = message.session_id
     if session_id is None or session_id not in FAKE_REDIS:
-        db = init_db()
+        appointments = init_db()
         session_id = session_id or str(uuid.uuid4())
         FAKE_REDIS[session_id] = {
-            "state": State(appointments=db, authenticated=True),
+            "state": State(authenticated=False),
+            "appointments": appointments
         }
 
     session_data = FAKE_REDIS[session_id]
     state = session_data["state"]
-    state["input"] = message.input
+    state.update({
+        "input": message.input,
+        "appointments": session_data["appointments"]
+    })
 
     response = graph.invoke(state)
     answer = response.pop("answer")
+    appointments = response.pop("appointments")
+
     state.update(response)
     state.update({"stop": False, "input": None})
 
     FAKE_REDIS[session_id] = {
-        "state": state
+        "state": state,
+        "appointments": appointments
     }
 
     return {
