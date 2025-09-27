@@ -25,7 +25,7 @@ class ReactAgent:
             What are my appointments for the next week?
             Do I have an appointment with cardiologist?
             """
-            ids = ListLLM.run(input)
+            ids = ListLLM.run(input, appointments)
             self.ids = ids
             texts = []
 
@@ -55,26 +55,34 @@ class ReactAgent:
         @tool
         def confirm_appointment() -> str:
             """
-            This tool should be used to confirm appointments using their id
-            The appointments first need to be listed than the ID should be used to confirm
+            This tool should be used to confirm appointments
+            The appointments first need to be listed than confirmed
             """
             confirmed = []
             for apt in appointments:
                 if apt.id in self.ids:
                     apt.confirmed = True
-                    confirmed.append(str(apt.id))
+                    text = dedent(
+                        f"""
+                    Appointment Confirmed:
+                    - Doctor name: {apt.doctor}
+                    - Speciality: {apt.speciality}
+                    - Schedule for: {apt.date} at {apt.time}
+                    """
+                    ).strip()
+                    confirmed.append(text)
             if len(confirmed):
-                cids = ", ".join(confirmed)
-                return f"Appointment with id {cids} confirmed!"
-            return f"No appointments with ids {cids} were found"
+                cids = "\n\n".join(confirmed)
+                return cids
+            return f"No appointments were found"
         return confirm_appointment
 
     def create_cancel_tool(self, appointments: list[Appointments]):
         @tool
-        def cancel_appointment(appointment_id:  int) -> str:
+        def cancel_appointment() -> str:
             """
-            This tool should be used to cancel appointments using their id
-            The appointments first need to be listed than the ID should be used to cancel
+            This tool should be used to cancel appointments
+            The appointments first need to be listed than canceled
             """
             canceled = []
             for apt in appointments:
@@ -88,8 +96,9 @@ class ReactAgent:
             return f"No appointments with ids {cids} were found"
         return cancel_appointment
 
+    @staticmethod
     @tool
-    def greeting(self) -> str:
+    def greeting() -> str:
         """This tool should be used when the user sends a message containing only their personal information, like Name, Phone and Date of Birth"""
         return dedent(
             """
@@ -109,8 +118,12 @@ class ReactAgent:
 
         When listing the appointments to the user, DO NOT show the ID.
         
-        If the user asks to confirm an appointment you should first list the related appointments then use the "confirm_appointment" tool passig the ID as parameter.
-            For example, if the user asks to confirm an appointment for an specific day you should first list the appointments then give the correct ID to the "confirm_appointment" tool.
+        If the user asks to confirm an appointment you should first list the related appointments then use the "confirm_appointment" tool.
+            For example, if the user asks to confirm an appointment for an specific day you should first list the appointments then call "confirm_appointment" tool.
+
+
+        If the user asks to cancel an appointment you should first list the related appointments then use the "canel_appointment" tool.
+            For example, if the user asks to cancel an appointment for an specific day you should first list the appointments then call "cancel_appointment" tool.
         """
         )
 

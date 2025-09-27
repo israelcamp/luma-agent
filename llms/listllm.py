@@ -3,7 +3,7 @@ from textwrap import dedent
 from langchain_ollama import ChatOllama
 from pydantic import BaseModel
 
-from db.db import db
+from db.db import Appointments
 from settings import settings
 
 
@@ -31,9 +31,9 @@ class ListLLM:
         )
 
     @staticmethod
-    def list_of_appointments() -> str:
+    def list_of_appointments(appointments: list[Appointments]) -> str:
         texts = []
-        for apt in db:
+        for apt in appointments:
             text = dedent(
                 f"""
             Appointment ID: {apt.id}
@@ -48,17 +48,17 @@ class ListLLM:
         )
 
     @staticmethod
-    def chat(input: str) -> dict:
+    def chat(input: str, appointments: list[Appointments]) -> dict:
         llm = ChatOllama(model=settings.model, temperature=0)
         llm = llm.with_structured_output(ChosenAppointments)
 
-        appointments = ListLLM.list_of_appointments()
+        appointments = ListLLM.list_of_appointments(appointments)
         message = f"{appointments}\nUser Message: {input}"
 
         response = llm.invoke([("system", ListLLM.prompt()), ("human", message)])
         return response
 
     @staticmethod
-    def run(input: str) -> str:
-        response = ListLLM.chat(input)
+    def run(input: str, appointments: list[Appointments]) -> str:
+        response = ListLLM.chat(input, appointments)
         return response.ids

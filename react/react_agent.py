@@ -25,7 +25,7 @@ def create_react_agent(model, tools, prompt: str, stop_tools: list[str] | None =
             tool_result = tools_by_name[tool_call["name"]].invoke(tool_call["args"])
             outputs.append(
                 ToolMessage(
-                    content=json.dumps(tool_result),
+                    content=tool_result,
                     name=tool_call["name"],
                     tool_call_id=tool_call["id"],
                 )

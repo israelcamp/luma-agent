@@ -36,4 +36,3 @@ def init_db() -> list[Appointments]:
         ))
     return appointments
 
-db = init_db()
