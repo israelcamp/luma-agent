@@ -40,6 +40,7 @@ class ReactAgent:
                 Speciality: {apt.speciality}
                 Schedule for: {apt.date} at {apt.time}
                 Is confirmed? {apt.confirmed}
+                Is canceled? {apt.canceled}
                 """
                 ).strip()
                 texts.append(text)
