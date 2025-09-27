@@ -4,8 +4,8 @@ import uuid
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-from db.db import init_db
-from graph import State, graph
+from src.db.db import init_db
+from src.graph import State, graph
 
 class Message(BaseModel):
     input: str

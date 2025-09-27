@@ -6,10 +6,10 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
 
-from llms.auth import AuthLLM
-from llms.react import ReactAgent
-from db.db import Appointments
-from settings import settings
+from src.llms.auth import AuthLLM
+from src.llms.react import ReactAgent
+from src.db.db import Appointments
+from src.settings import settings
 
 
 class State(TypedDict):

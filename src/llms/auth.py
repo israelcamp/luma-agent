@@ -4,7 +4,7 @@ from textwrap import dedent
 from pydantic import BaseModel
 from langchain_ollama import ChatOllama
 
-from settings import settings
+from src.settings import settings
 
 class AuthInfo(BaseModel):
     name: str | None

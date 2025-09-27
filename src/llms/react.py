@@ -6,8 +6,8 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import BaseMessage
 from langgraph.prebuilt import create_react_agent
 
-from db.db import Appointments
-from settings import settings
+from src.db.db import Appointments
+from src.settings import settings
 
 
 class ReactAgent:
