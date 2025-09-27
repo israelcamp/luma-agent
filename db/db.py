@@ -21,7 +21,7 @@ def init_db() -> list[Appointments]:
     appointments = []
     for i, apt in enumerate(data):
         dt = datetime.fromisoformat(apt["date_time"])
-        day = dt.date().strftime("%Y-%m-%d")
+        day = dt.date().strftime("%d %B %Y")
         time = dt.time().strftime("%I:%M %p")
         appointments.append(Appointments(
             id=i,

@@ -4,6 +4,7 @@ from textwrap import dedent
 from pydantic import BaseModel
 from langchain_ollama import ChatOllama
 
+from settings import settings
 
 class AuthInfo(BaseModel):
     name: str | None
@@ -30,7 +31,7 @@ class AuthLLM:
     @staticmethod
     def chat(input: str) -> dict:
         llm = ChatOllama(
-            model="llama3.2:3b-instruct-q5_K_M",
+            model=settings.model,
             temperature=0
         )
         llm = llm.with_structured_output(AuthInfo)

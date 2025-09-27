@@ -4,6 +4,7 @@ from langchain_ollama import ChatOllama
 from pydantic import BaseModel
 
 from db.db import db
+from settings import settings
 
 
 class ChosenAppointments(BaseModel):
@@ -20,6 +21,7 @@ class ListLLM:
         Your task is to return the ids of the Appointments that are related to the user message.
 
         For example, the user might ask for appointments in a specific date, in that case you should return only the IDs from the appointments that are scheduled for that day.
+        If given only a date you should return the appointments for that date.
 
         Your response should be in a JSON format:
         {{
@@ -47,7 +49,7 @@ class ListLLM:
 
     @staticmethod
     def chat(input: str) -> dict:
-        llm = ChatOllama(model="llama3.2:3b-instruct-q5_K_M", temperature=0)
+        llm = ChatOllama(model=settings.model, temperature=0)
         llm = llm.with_structured_output(ChosenAppointments)
 
         appointments = ListLLM.list_of_appointments()
