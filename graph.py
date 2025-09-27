@@ -52,7 +52,7 @@ def check_auth(state: State) -> State:
     return state
 
 def react_node(state: State) -> State:
-    response = ReactAgent.run(state["input"], state["appointments"])
+    response = ReactAgent().run(state["input"], state["appointments"])
     try:
         response = json.loads(response)
     except:

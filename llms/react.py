@@ -10,80 +10,93 @@ from react.react_agent import create_react_agent
 from settings import settings
 
 
-def create_list_appointments_tool(input: str, appointments: list[Appointments]):
-    @tool
-    def list_appointments() -> list[dict]:
-        """
-        Lists all appointments that are not canceled
-        This tool should be used whenever the user asks:
-        To see his appoints, check futures appointments, wants to know unconfirmed appoints and so on.
-
-        Examples:
-        What are my appointments for the next week?
-        Do I have an appointment with cardiologist?
-        """
-        ids = ListLLM.run(input)
-        texts = []
-        for apt in appointments:
-            if apt.id not in ids:
-                continue
-
-            text = dedent(
-                f"""
-            Appointment ID: {apt.id} (appointment_id)
-            Doctor name: {apt.doctor}
-            Speciality: {apt.speciality}
-            Schedule for: {apt.date} at {apt.time}
-            Is confirmed? {apt.confirmed}
-            """
-            ).strip()
-            texts.append(text)
-        return "\n\n".join(
-            ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
-        )
-
-    return list_appointments
-
-def create_confirm_tool(appointments: list[Appointments]):
-    @tool
-    def confirm_appointment(appointment_id:  int) -> str:
-        """
-        This tool should be used to confirm appointments using their id
-        The appointments first need to be listed than the ID should be used to confirm
-        """
-        for apt in appointments:
-            if apt.id == appointment_id:
-                apt.confirmed = True
-                return f"Appointment with id {appointment_id} confirmed!"
-        return f"No appointment with id {appointment_id} was found"
-    return confirm_appointment
-
-def create_cancel_tool(appointments: list[Appointments]):
-    @tool
-    def cancel_appointment(appointment_id:  int) -> str:
-        """
-        This tool should be used to cancel appointments using their id
-        The appointments first need to be listed than the ID should be used to cancel
-        """
-        for apt in appointments:
-            if apt.id == appointment_id:
-                apt.confirmed = False
-                apt.canceled = True
-                return f"Appointment with id {appointment_id} is canceled!"
-        return f"No appointment with id {appointment_id} was found"
-    return cancel_appointment
-
-@tool
-def greeting() -> str:
-    """This tool should be used when the user sends a message containing only their personal information, like Name, Phone and Date of Birth"""
-    return dedent(
-        """
-    Hello! Tell me if you want to list, cancel or confirm your appointments.
-    """
-    ).strip()
-
 
 class ReactAgent:
+
+    def create_list_appointments_tool(self, input: str, appointments: list[Appointments]):
+        @tool
+        def list_appointments() -> list[dict]:
+            """
+            Lists all appointments that are not canceled
+            This tool should be used whenever the user asks:
+            To see his appoints, check futures appointments, wants to know unconfirmed appoints and so on.
+
+            Examples:
+            What are my appointments for the next week?
+            Do I have an appointment with cardiologist?
+            """
+            ids = ListLLM.run(input)
+            self.ids = ids
+            texts = []
+
+            for apt in appointments:
+                if apt.id not in ids:
+                    continue
+
+                text = dedent(
+                    f"""
+                Appointment ID: {apt.id} (appointment_id)
+                Doctor name: {apt.doctor}
+                Speciality: {apt.speciality}
+                Schedule for: {apt.date} at {apt.time}
+                Is confirmed? {apt.confirmed}
+                """
+                ).strip()
+                texts.append(text)
+
+            self.appointments_texts = texts
+            return "\n\n".join(
+                ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
+            )
+
+        return list_appointments
+
+    def create_confirm_tool(self, appointments: list[Appointments]):
+        @tool
+        def confirm_appointment() -> str:
+            """
+            This tool should be used to confirm appointments using their id
+            The appointments first need to be listed than the ID should be used to confirm
+            """
+            confirmed = []
+            for apt in appointments:
+                if apt.id in self.ids:
+                    apt.confirmed = True
+                    confirmed.append(str(apt.id))
+            if len(confirmed):
+                cids = ", ".join(confirmed)
+                return f"Appointment with id {cids} confirmed!"
+            return f"No appointments with ids {cids} were found"
+        return confirm_appointment
+
+    def create_cancel_tool(self, appointments: list[Appointments]):
+        @tool
+        def cancel_appointment(appointment_id:  int) -> str:
+            """
+            This tool should be used to cancel appointments using their id
+            The appointments first need to be listed than the ID should be used to cancel
+            """
+            canceled = []
+            for apt in appointments:
+                if apt.id in self.ids:
+                    apt.confirmed = False
+                    apt.canceled = True
+                    canceled.append(str(apt.id))
+            if len(canceled):
+                cids = ", ".join(canceled)
+                return f"Appointments with id {cids} is canceled!"
+            return f"No appointments with ids {cids} were found"
+        return cancel_appointment
+
+    @tool
+    def greeting(self) -> str:
+        """This tool should be used when the user sends a message containing only their personal information, like Name, Phone and Date of Birth"""
+        return dedent(
+            """
+        Hello! Tell me if you want to list, cancel or confirm your appointments.
+        """
+        ).strip()
+
 
     @staticmethod
     def prompt() -> str:
@@ -101,18 +114,17 @@ class ReactAgent:
         """
         )
 
-    @staticmethod
-    def run(input: str, appointments: list[Appointments]) -> str:
+    def run(self, input: str, appointments: list[Appointments]) -> str:
         llm = ChatOllama(model=settings.model, temperature=0)
         tools = [
-            greeting,
-            create_list_appointments_tool(input, appointments),
-            create_confirm_tool(appointments),
-            create_cancel_tool(appointments)
+           self.greeting,
+           self.create_list_appointments_tool(input, appointments),
+           self.create_confirm_tool(appointments),
+           self.create_cancel_tool(appointments)
         ]
 
         agent = create_react_agent(
-            llm, tools=tools, prompt=ReactAgent.prompt(), # stop_tools=["greeting"]
+            llm, tools=tools, prompt=ReactAgent.prompt(), stop_tools=["greeting"]
         )
 
         response = agent.invoke({"messages": [("user", input)]})
