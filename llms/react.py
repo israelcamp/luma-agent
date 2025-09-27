@@ -1,17 +1,16 @@
 from textwrap import dedent
 
 from rich import print
-
 from langchain.tools import tool
 from langchain_ollama import ChatOllama
 
-from db.db import db
+from db.db import Appointments
 from llms.listllm import ListLLM
 from react.react_agent import create_react_agent
 from settings import settings
 
 
-def create_list_appointments_tool(input: str):
+def create_list_appointments_tool(input: str, appointments: list[Appointments]):
     @tool
     def list_appointments() -> list[dict]:
         """
@@ -25,13 +24,13 @@ def create_list_appointments_tool(input: str):
         """
         ids = ListLLM.run(input)
         texts = []
-        for apt in db:
+        for apt in appointments:
             if apt.id not in ids:
                 continue
 
             text = dedent(
                 f"""
-            Appointment ID: {apt.id}
+            Appointment ID: {apt.id} (appointment_id)
             Doctor name: {apt.doctor}
             Speciality: {apt.speciality}
             Schedule for: {apt.date} at {apt.time}
@@ -45,24 +44,34 @@ def create_list_appointments_tool(input: str):
 
     return list_appointments
 
-@tool
-def confirm_appointment(id:  int) -> str:
-    """This tool should be used to confirm appointments using their id"""
-    for apt in db:
-        if apt.id == id:
-            db.confirmed = True
-            return f"Appointment with id {id} confirmed!"
-    return f"No appointment with id {id} was found"
+def create_confirm_tool(appointments: list[Appointments]):
+    @tool
+    def confirm_appointment(appointment_id:  int) -> str:
+        """
+        This tool should be used to confirm appointments using their id
+        The appointments first need to be listed than the ID should be used to confirm
+        """
+        for apt in appointments:
+            if apt.id == appointment_id:
+                apt.confirmed = True
+                return f"Appointment with id {appointment_id} confirmed!"
+        return f"No appointment with id {appointment_id} was found"
+    return confirm_appointment
 
-@tool
-def cancel_appointment(id:  int) -> str:
-    """This tool should be used to cancel appointments using their id"""
-    for apt in db:
-        if apt.id == id:
-            db.confirmed = False
-            db.canceled = True
-            return f"Appointment with id {id} is canceled!"
-    return f"No appointment with id {id} was found"
+def create_cancel_tool(appointments: list[Appointments]):
+    @tool
+    def cancel_appointment(appointment_id:  int) -> str:
+        """
+        This tool should be used to cancel appointments using their id
+        The appointments first need to be listed than the ID should be used to cancel
+        """
+        for apt in appointments:
+            if apt.id == appointment_id:
+                apt.confirmed = False
+                apt.canceled = True
+                return f"Appointment with id {appointment_id} is canceled!"
+        return f"No appointment with id {appointment_id} was found"
+    return cancel_appointment
 
 @tool
 def greeting() -> str:
@@ -93,17 +102,17 @@ class ReactAgent:
         )
 
     @staticmethod
-    def run(input: str) -> str:
+    def run(input: str, appointments: list[Appointments]) -> str:
         llm = ChatOllama(model=settings.model, temperature=0)
         tools = [
-            create_list_appointments_tool(input),
             greeting,
-            confirm_appointment,
-            cancel_appointment
+            create_list_appointments_tool(input, appointments),
+            create_confirm_tool(appointments),
+            create_cancel_tool(appointments)
         ]
 
         agent = create_react_agent(
-            llm, tools=tools, prompt=ReactAgent.prompt(), stop_tools=["greeting"]
+            llm, tools=tools, prompt=ReactAgent.prompt(), # stop_tools=["greeting"]
         )
 
         response = agent.invoke({"messages": [("user", input)]})

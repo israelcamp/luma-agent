@@ -7,6 +7,7 @@ from typing_extensions import TypedDict
 
 from llms.auth import AuthLLM
 from llms.react import ReactAgent
+from db.db import Appointments
 
 
 class State(TypedDict):
@@ -14,10 +15,11 @@ class State(TypedDict):
     name: str
     phone: str
     date_of_birth: str
-    messages: Annotated[list, add_messages]
     stop: bool
     input: str
     answer: str
+    messages: Annotated[list, add_messages]
+    appointments: list[Appointments]
 
 def check_auth(state: State) -> State:
     if state.get("authenticated", False):
@@ -50,7 +52,7 @@ def check_auth(state: State) -> State:
     return state
 
 def react_node(state: State) -> State:
-    response = ReactAgent.run(state["input"])
+    response = ReactAgent.run(state["input"], state["appointments"])
     try:
         response = json.loads(response)
     except:

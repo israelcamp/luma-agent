@@ -37,7 +37,7 @@ def create_react_agent(model, tools, prompt: str, stop_tools: list[str] | None =
         config: RunnableConfig,
     ):
         system_prompt = SystemMessage(
-            f"Use the tools to answer as best as you can!\nPAY ATTENTION to the following instructions:\n{prompt}"
+            f"Use the tools to answer as best as you can!\nPAY ATTENTION to the following instructions:\n{prompt}."
         )
         response = model.invoke([system_prompt] + state["messages"], config)
         return {"messages": [response]}
