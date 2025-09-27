@@ -16,6 +16,8 @@ class ReactAgent:
 
     def __init__(self, ids: list | None):
         self.ids = ids
+        if self.ids is None:
+            self.ids = []
 
     def create_list_appointments_tool(self, input: str, history: list[BaseMessage], appointments: list[Appointments]):
         @tool
@@ -76,9 +78,11 @@ class ReactAgent:
                     ).strip()
                     confirmed.append(text)
             if len(confirmed):
-                cids = "\n\n".join(confirmed)
-                return cids
-            return f"No appointments were found"
+                msg = "\n\n".join(confirmed)
+            else:
+                msg = f"No appointments were found"
+            self.ids = []
+            return msg
         return confirm_appointment
 
     def create_cancel_tool(self, appointments: list[Appointments]):
@@ -104,9 +108,11 @@ class ReactAgent:
  
                     canceled.append(text)
             if len(canceled):
-                cids = "\n\n".join(canceled)
-                return cids
-            return f"No appointments with ids {cids} were found"
+                msg = "\n\n".join(canceled)
+            else:
+                msg = f"No appointments with ids {cids} were found"
+            self.ids = []
+            return msg
         return cancel_appointment
 
     @staticmethod
@@ -130,12 +136,8 @@ class ReactAgent:
         IMPORTANT: The message from this tool should be returned to the user.
 
         When listing the appointments to the user, DO NOT show the ID.
-        
-        IMPORTANT: If the user asks to confirm an appointment you should first list the related appointments then use the "confirm_appointment" tool.
-            For example, if the user asks to confirm an appointment for an specific day you should first list the appointments then call "confirm_appointment" tool.
 
-        IMPORTANT: If the user asks to cancel an appointment you should first list the related appointments then use the "cancel_appointment" tool.
-            For example, if the user asks to cancel an appointment for an specific day you should first list the appointments then call "cancel_appointment" tool.
+        After calling and/or using the tools "confirm_appointment" and "cancel_appointment" you should inform the results.
         """
         )
 
