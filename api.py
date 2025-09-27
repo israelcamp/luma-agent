@@ -22,7 +22,7 @@ def chat(message: Message):
         db = init_db()
         session_id = session_id or str(uuid.uuid4())
         FAKE_REDIS[session_id] = {
-            "state": State(appointments=db),
+            "state": State(appointments=db, authenticated=True),
         }
 
     session_data = FAKE_REDIS[session_id]

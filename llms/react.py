@@ -3,6 +3,7 @@ from textwrap import dedent
 from rich import print
 from langchain.tools import tool
 from langchain_ollama import ChatOllama
+from langchain_core.messages import BaseMessage
 
 from db.db import Appointments
 from llms.listllm import ListLLM
@@ -13,9 +14,12 @@ from settings import settings
 
 class ReactAgent:
 
-    def create_list_appointments_tool(self, input: str, appointments: list[Appointments]):
+    def __init__(self, ids: list | None):
+        self.ids = ids
+
+    def create_list_appointments_tool(self, input: str, history: list[BaseMessage], appointments: list[Appointments]):
         @tool
-        def list_appointments() -> list[dict]:
+        def list_appointments(query: str) -> list[dict]:
             """
             Lists all appointments that are not canceled
             This tool should be used whenever the user asks:
@@ -25,7 +29,7 @@ class ReactAgent:
             What are my appointments for the next week?
             Do I have an appointment with cardiologist?
             """
-            ids = ListLLM.run(input, appointments)
+            ids = ListLLM.run(query, appointments)
             self.ids = ids
             texts = []
 
@@ -35,7 +39,6 @@ class ReactAgent:
 
                 text = dedent(
                     f"""
-                Appointment ID: {apt.id} (appointment_id)
                 Doctor name: {apt.doctor}
                 Speciality: {apt.speciality}
                 Schedule for: {apt.date} at {apt.time}
@@ -90,10 +93,19 @@ class ReactAgent:
                 if apt.id in self.ids:
                     apt.confirmed = False
                     apt.canceled = True
-                    canceled.append(str(apt.id))
+                    text = dedent(
+                        f"""
+                    Appointment Canceled:
+                    - Doctor name: {apt.doctor}
+                    - Speciality: {apt.speciality}
+                    - Schedule for: {apt.date} at {apt.time}
+                    """
+                    ).strip()
+ 
+                    canceled.append(text)
             if len(canceled):
-                cids = ", ".join(canceled)
-                return f"Appointments with id {cids} is canceled!"
+                cids = "\n\n".join(canceled)
+                return cids
             return f"No appointments with ids {cids} were found"
         return cancel_appointment
 
@@ -119,29 +131,28 @@ class ReactAgent:
 
         When listing the appointments to the user, DO NOT show the ID.
         
-        If the user asks to confirm an appointment you should first list the related appointments then use the "confirm_appointment" tool.
+        IMPORTANT: If the user asks to confirm an appointment you should first list the related appointments then use the "confirm_appointment" tool.
             For example, if the user asks to confirm an appointment for an specific day you should first list the appointments then call "confirm_appointment" tool.
 
-
-        If the user asks to cancel an appointment you should first list the related appointments then use the "canel_appointment" tool.
+        IMPORTANT: If the user asks to cancel an appointment you should first list the related appointments then use the "cancel_appointment" tool.
             For example, if the user asks to cancel an appointment for an specific day you should first list the appointments then call "cancel_appointment" tool.
         """
         )
 
-    def run(self, input: str, appointments: list[Appointments]) -> str:
+    def run(self, input: str, history: list[BaseMessage], appointments: list[Appointments]) -> str:
         llm = ChatOllama(model=settings.model, temperature=0)
         tools = [
            self.greeting,
-           self.create_list_appointments_tool(input, appointments),
+           self.create_list_appointments_tool(input, history, appointments),
+           self.create_cancel_tool(appointments),
            self.create_confirm_tool(appointments),
-           self.create_cancel_tool(appointments)
         ]
 
         agent = create_react_agent(
             llm, tools=tools, prompt=ReactAgent.prompt(), stop_tools=["greeting"]
         )
 
-        response = agent.invoke({"messages": [("user", input)]})
+        response = agent.invoke({"messages": history + [("user", input)]})
         print(response)
         answer = response["messages"][-1].content
-        return answer
+        return answer, self.ids

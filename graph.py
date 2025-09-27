@@ -1,6 +1,7 @@
 import json
 from typing import Annotated
 
+from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from typing_extensions import TypedDict
@@ -8,6 +9,7 @@ from typing_extensions import TypedDict
 from llms.auth import AuthLLM
 from llms.react import ReactAgent
 from db.db import Appointments
+from settings import settings
 
 
 class State(TypedDict):
@@ -20,6 +22,7 @@ class State(TypedDict):
     answer: str
     messages: Annotated[list, add_messages]
     appointments: list[Appointments]
+    current_ids: list[int] | None
 
 def check_auth(state: State) -> State:
     if state.get("authenticated", False):
@@ -52,18 +55,37 @@ def check_auth(state: State) -> State:
     return state
 
 def react_node(state: State) -> State:
-    response = ReactAgent().run(state["input"], state["appointments"])
+    history = state.get("messages", [])
+
+    if len(history) > settings.max_history:
+        history = history[-settings.max_history:]
+
+    ids = state.get("current_ids", None)
+    response, ids = ReactAgent(ids=ids).run(state["input"], history, state["appointments"])
     try:
         response = json.loads(response)
     except:
         pass
     state["answer"] = response
+    state["current_ids"] = ids
     return state
+
+def add_messages_node(state: State) -> State:
+    input = state["input"]
+    answer = state["answer"]
+    return {
+        "messages": [
+            HumanMessage(content=input),
+            AIMessage(content=answer)
+        ]
+    }
+
 
 graph_builder = StateGraph(State)
 
 graph_builder.add_node("check_auth", check_auth)
 graph_builder.add_node("react", react_node)
+graph_builder.add_node("add_messages", add_messages_node)
 
 graph_builder.add_edge(START, "check_auth")
 graph_builder.add_conditional_edges(
@@ -74,7 +96,8 @@ graph_builder.add_conditional_edges(
         True: END
     }
 )
-graph_builder.add_edge("react", END)
+graph_builder.add_edge("react", "add_messages")
+graph_builder.add_edge("add_messages", END)
 
 graph = graph_builder.compile()
 

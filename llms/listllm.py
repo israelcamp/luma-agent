@@ -8,7 +8,7 @@ from settings import settings
 
 
 class ChosenAppointments(BaseModel):
-    ids: list[int]
+    appointment_ids: list[int]
 
 
 class ListLLM:
@@ -20,12 +20,13 @@ class ListLLM:
         You will receive a list of appointments and a user message.
         Your task is to return the ids of the Appointments that are related to the user message.
 
-        For example, the user might ask for appointments in a specific date, in that case you should return only the IDs from the appointments that are scheduled for that day.
+        You should return the relevant appointments for the given query.
+        For example, the query might be a specific date, in that case you should return only the IDs from the appointments that are scheduled for that day.
         If given only a date you should return the appointments for that date.
 
         Your response should be in a JSON format:
         {{
-            "ids": (list of integers ids of the relevant appointments)
+            "appointment_ids": (list of integers appointment_ids of the relevant appointments)
         }}
         """
         )
@@ -36,11 +37,12 @@ class ListLLM:
         for apt in appointments:
             text = dedent(
                 f"""
-            Appointment ID: {apt.id}
-            Speciality: {apt.speciality}
-            Schedule for: {apt.date} at {apt.time}
-            Is confirmed? {apt.confirmed}
-            Is canceled? {apt.canceled}
+            appointment_id: {apt.id}
+            - Date: {apt.date}
+            - Time: {apt.time}
+            - Speciality: {apt.speciality}
+            - Is confirmed? {apt.confirmed}
+            - Is canceled? {apt.canceled}
             """
             ).strip()
             texts.append(text)
@@ -54,7 +56,7 @@ class ListLLM:
         llm = llm.with_structured_output(ChosenAppointments)
 
         appointments = ListLLM.list_of_appointments(appointments)
-        message = f"{appointments}\nUser Message: {input}"
+        message = f"{appointments}\n\nQuery: Give me appointments with {input}"
 
         response = llm.invoke([("system", ListLLM.prompt()), ("human", message)])
         return response
@@ -62,4 +64,4 @@ class ListLLM:
     @staticmethod
     def run(input: str, appointments: list[Appointments]) -> str:
         response = ListLLM.chat(input, appointments)
-        return response.ids
+        return response.appointment_ids
