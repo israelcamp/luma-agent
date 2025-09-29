@@ -5,4 +5,6 @@ class Settings(BaseModel):
     model: str = "llama3.2:3b-instruct-q5_K_M"
     max_history: int = 2
 
+    sqlite_file_name: str = "database.db"
+
 settings = Settings()

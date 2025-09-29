@@ -17,6 +17,10 @@ class ReactAgent:
         def confirm_appointment(appointment_ids: list[int]) -> str:
             """
             This tool should be used to confirm appointments using their appointment_id
+            To be used only for messages such as:
+            - Confirm my appointments
+            - Confirm appointment with doctor John
+            - Confirm appointment for december 12
             """
             confirmed = []
             for apt in appointments:
