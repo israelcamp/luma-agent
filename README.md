@@ -3,7 +3,8 @@
 ## Install
 
 UV: `curl -LsSf https://astral.sh/uv/install.sh | sh`
-Ollma: `curl -fsSL https://ollama.com/install.sh | sh`
+
+Ollama: `curl -fsSL https://ollama.com/install.sh | sh`
 
 1. `uv sync`
 1. `source .venv/bin/activate`
