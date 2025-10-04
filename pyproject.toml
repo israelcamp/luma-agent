@@ -22,3 +22,16 @@ dev = [
     "rich>=14.1.0",
     "ruff>=0.13.2",
 ]
+#
+# pyproject.toml
+[tool.basedpyright]
+typeCheckingMode = "basic"        # or "off", "standard", "strict"
+pythonVersion = "3.12"
+
+# common noise reducers
+reportMissingTypeStubs = false
+reportMissingImports = "none"
+
+# ignore folders completely
+exclude = ["**/node_modules", "**/__pycache__", "build", "dist", "venv", "tests/fixtures"]
+ignore  = ["legacy/"]             # suppress diagnostics for these paths

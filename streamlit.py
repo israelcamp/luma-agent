@@ -6,9 +6,7 @@ import requests
 st.title("Luma Agent")
 
 if "user_id" not in st.session_state:
-    resp = requests.post(
-        "http://localhost:8000/appointments"
-    )
+    resp = requests.post("http://localhost:8000/appointments")
     user_id = resp.json()["user_id"]
     st.session_state.user_id = user_id
 
@@ -23,17 +21,16 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if prompt := st.chat_input("What is up?"):
-
     with st.chat_message("user"):
         st.markdown(prompt)
 
     response = requests.post(
         "http://localhost:8000/chat",
-        json = {
+        json={
             "input": prompt,
             "user_id": st.session_state.user_id,
-            "session_id": st.session_state.session_id
-        }
+            "session_id": st.session_state.session_id,
+        },
     )
     answer = response.json()["answer"]
 
@@ -42,4 +39,3 @@ if prompt := st.chat_input("What is up?"):
 
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.session_state.messages.append({"role": "assistant", "content": answer})
-
