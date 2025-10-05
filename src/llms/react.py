@@ -11,10 +11,11 @@ from src.settings import settings
 
 
 class ReactAgent:
-
     def create_confirm_tool(self, appointments: list[Appointments]):
         @tool
-        def confirm_appointment(appointment_ids: list[int]) -> str:
+        def confirm_appointment(
+            appointment_ids: list[int],
+        ) -> str:
             """
             This tool should be used to confirm appointments using their appointment_id
             To be used only for messages such as:
@@ -35,8 +36,9 @@ class ReactAgent:
             if len(confirmed):
                 msg = "\n\n".join(confirmed)
             else:
-                msg = f"No appointments were found"
+                msg = "No appointments were found"
             return msg
+
         return confirm_appointment
 
     def create_cancel_tool(self, appointments: list[Appointments]):
@@ -55,13 +57,14 @@ class ReactAgent:
                     Appointment with appointment_id {apt.id} canceled.
                     """
                     ).strip()
- 
+
                     canceled.append(text)
             if len(canceled):
                 msg = "\n\n".join(canceled)
             else:
-                msg = f"No appointments with ids {cids} were found"
+                msg = "No appointments were found"
             return msg
+
         return cancel_appointment
 
     @staticmethod
@@ -80,15 +83,15 @@ class ReactAgent:
             ).strip()
             texts.append(text)
 
-        appointments = "\n\n".join(
-                ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
-            )
+        appointments_text = "\n\n".join(
+            ["== LIST OF APPOINTMENTS ==", *texts, "== END OF LIST OF APPOINTMENTS =="]
+        )
 
         return dedent(
             f"""
         The user will send you a message, you should check if you have any tool available that can help you answer the message correctly.
 
-        {appointments}
+        {appointments_text}
 
         When the user wants to confirm or cancel an appointment you should call "confirm_appointment" or "cancel_appointment" with the correct appointment_ids.
 
@@ -96,11 +99,13 @@ class ReactAgent:
         """
         )
 
-    def run(self, input: str, history: list[BaseMessage], appointments: list[Appointments]) -> str:
+    def run(
+        self, input: str, history: list[BaseMessage], appointments: list[Appointments]
+    ) -> str:
         llm = ChatOllama(model=settings.model, temperature=0)
         tools = [
-           self.create_cancel_tool(appointments),
-           self.create_confirm_tool(appointments),
+            self.create_cancel_tool(appointments),
+            self.create_confirm_tool(appointments),
         ]
 
         agent = create_react_agent(
